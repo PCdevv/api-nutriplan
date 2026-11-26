@@ -66,6 +66,72 @@ export const MealPlanController = {
   },
 
   /**
+   * POST /api/meal-plans/duplicate
+   * Body: { user_id, source_date, target_date, replace?: boolean }
+   */
+  async duplicateMealPlans(req, res) {
+    try {
+      const { user_id, source_date, target_date, replace = false } = req.body
+
+      if (!user_id || !source_date || !target_date) {
+        return res.status(400).json({
+          success: false,
+          message: 'user_id, source_date, dan target_date wajib diisi.',
+        })
+      }
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      if (!dateRegex.test(source_date) || !dateRegex.test(target_date)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Format tanggal harus YYYY-MM-DD.',
+        })
+      }
+
+      if (source_date === target_date) {
+        return res.status(400).json({
+          success: false,
+          message: 'source_date dan target_date tidak boleh sama.',
+        })
+      }
+
+      const sourcePlans = await MealPlanModel.findByUserAndDate(user_id, source_date)
+      if (!sourcePlans.length) {
+        return res.status(404).json({
+          success: false,
+          message: `Tidak ada meal plan pada tanggal ${source_date} untuk diduplikasi.`,
+        })
+      }
+
+      if (replace) {
+        await MealPlanModel.deleteByUserAndDate(user_id, target_date)
+      }
+
+      const plansToCreate = sourcePlans.map((plan) => ({
+        user_id,
+        date: target_date,
+        meal_id: plan.meal_id,
+        meal_type: plan.meal_type,
+        servings: plan.servings,
+      }))
+
+      const duplicated = await MealPlanModel.createMany(plansToCreate)
+
+      return res.status(201).json({
+        success: true,
+        data: duplicated,
+        message: `${duplicated.length} menu berhasil diduplikasi dari ${source_date} ke ${target_date}.`,
+      })
+    } catch (error) {
+      console.error('[MealPlanController.duplicateMealPlans]', error)
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Gagal menduplikasi meal plan.',
+      })
+    }
+  },
+
+  /**
    * PATCH /api/meal-plans/:id
    */
   async updateServings(req, res) {

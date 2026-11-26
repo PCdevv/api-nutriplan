@@ -5,6 +5,7 @@ const router = Router()
 
 router.get('/', MealPlanController.getMealPlans)
 router.post('/', MealPlanController.createMealPlan)
+router.post('/duplicate', MealPlanController.duplicateMealPlans)
 router.patch('/:id', MealPlanController.updateServings)
 router.delete('/:id', MealPlanController.deleteMealPlan)
 

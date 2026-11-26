@@ -39,6 +39,41 @@ export const MealPlanModel = {
   },
 
   /**
+   * Menambahkan banyak entri ke meal plan sekaligus (bulk insert)
+   */
+  async createMany(plans) {
+    const payloads = plans.map((planData) => ({
+      user_id: planData.user_id,
+      date: planData.date,
+      meal_id: planData.meal_id,
+      meal_type: (planData.meal_type || 'lunch').toLowerCase(),
+      servings: Number(planData.servings || 1),
+    }))
+
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .insert(payloads)
+      .select('id, user_id, date, meal_type, servings, created_at, meal_id, meals(*)')
+
+    if (error) throw error
+    return data || []
+  },
+
+  /**
+   * Menghapus semua entri meal plan user pada tanggal tertentu
+   */
+  async deleteByUserAndDate(userId, dateStr) {
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .delete()
+      .eq('user_id', userId)
+      .eq('date', dateStr)
+
+    if (error) throw error
+    return data
+  },
+
+  /**
    * Mengubah jumlah porsi (servings)
    */
   async updateServings(id, servings) {
